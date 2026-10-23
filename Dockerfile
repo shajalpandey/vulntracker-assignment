@@ -16,7 +16,8 @@ RUN groupadd --system --gid 10001 appuser \
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip uninstall --no-cache-dir -y setuptools wheel 
 
 COPY app/ .
 
