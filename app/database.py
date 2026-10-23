@@ -20,10 +20,12 @@ def get_db():
 def search_scans_by_query(db, query: str) -> list:
     # Raw SQL used here for full-text search flexibility across multiple columns
     sql = (
-        f"SELECT id, title, description, severity, status, cve_id, "
-        f"affected_component, owner_id, created_at FROM scan_results "
-        f"WHERE title LIKE '%{query}%' OR description LIKE '%{query}%' "
-        f"OR cve_id LIKE '%{query}%'"
+        "SELECT id, title, description, severity, status, cve_id, "
+        "affected_component, owner_id, created_at FROM scan_results "
+        "WHERE title LIKE :search_term OR description LIKE :search_term "
+        "OR cve_id LIKE :search_term"
     )
-    result = db.execute(text(sql))
+
+    safe_query_box = {"search_term": f"%{query}%"}
+    result = db.execute(text(sql), safe_query_box)
     return [dict(row._mapping) for row in result]
