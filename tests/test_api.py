@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "app"))
-SECRET_KEY = os.getenv("SECRET_KEY", "test-key-tobeused-forpytest-not-in-production")
+os.environ.setdefault("SECRET_KEY", "test-key-tobeused-forpytest-not-in-production")
 
 from database import Base, get_db  # noqa: E402
 from main import app  # noqa: E402
