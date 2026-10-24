@@ -1,3 +1,172 @@
+# VulnTracker
+
+VulnTracker keeps track of vulnerability scan results. It has two services:
+
+- **`app/`** is the main API, written in Python (FastAPI). Users register, log in, and add, search, update and delete their scans. A scan owner can also share one scan with someone who has no account.
+- **`notify/`** is a notification service, written in Node.js (Express). The API calls it when a scan is created or updated.
+
+This repo also has the security work I did on top of the starter code: scans, fixes, a Docker image and a Helm chart. See [Security work](#security-work).
+
+## Run it on your computer
+
+You need Python 3.11, Node.js 20 or newer, and Docker (only for the Docker option).
+
+**1. Set the secret key.** The API will not start without one.
+
+```bash
+cp .env.example .env
+```
+
+`.env` is not committed to git, so your real key stays private. `.env.example` is committed and only shows what the file should look like. Open `.env` and replace `change-me` with a random key of at least 32 characters. You can make one with:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+**2. Start the API.**
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cd app
+python -m uvicorn main:app --reload
+```
+
+The API runs at http://localhost:8000. You can try every endpoint at http://localhost:8000/docs.
+
+**3. Start the notification service** (optional, in a second terminal).
+
+```bash
+cd notify
+npm install
+npm start
+```
+
+It runs at http://localhost:3001.
+
+**4. Run the tests.**
+
+```bash
+python -m pytest tests/ -v     # Python tests, from the repo root
+cd notify && npm test          # Node tests
+```
+
+The Python tests set a dummy key themselves, so they pass without a `.env` file (this is also how they pass in CI).
+
+## Run it with Docker
+
+Build the image from the repo root:
+
+```bash
+docker build -t vulntracker:1.0.0 .
+```
+
+Run it:
+
+```bash
+docker run -d --name vulntracker -p 8000:8000 --env-file .env vulntracker:1.0.0
+```
+
+Then open http://localhost:8000/docs. `docker ps` should show the container as `healthy`. To stop it: `docker rm -f vulntracker`.
+
+The container cannot see your `.env` file, because the file is kept out of the image on purpose. `--env-file .env` hands its values to the container as environment variables, and the code reads the key from there.
+
+About the image:
+- It is based on a slim Python image, pinned to a fixed digest.
+- It runs as a non-root user.
+- It has a `HEALTHCHECK`.
+- It has no secrets inside.
+- The code is read-only. Only the `/data` folder is writable, because that is where the database file lives.
+
+## Shared report links
+
+The owner of a scan can create a link that shows that one scan to someone who has no account, such as a customer or an auditor.
+
+- Anyone with the link can see that one scan and nothing else.
+- The link stops working after **24 hours**.
+- The owner can add an optional **password** to the link.
+
+| Who | Endpoint | What it does |
+|---|---|---|
+| The owner (logged in) | `POST /scans/{scan_id}/share` | Creates a link for one of their scans |
+| Anyone with the link | `GET /share/{token}` | Shows the scan (no login needed). If the link has a password, add `?password=...` |
+
+**How it is kept safe**
+- Only the owner can share a scan. Asking to share someone else's scan gives a 404.
+- The link cannot be guessed. The token is random and about 43 characters long.
+- Secrets are not stored as they are. The database keeps a hash of the token and a bcrypt hash of the password, never the real values.
+- The person with the link sees only safe fields. `owner_id` and `remediation_notes` are never sent.
+
+**Choices I made**
+- **`share_url` is fixed to `http://localhost:8000`.** I kept it simple for this assignment. In a real deployment the base URL should come from a setting, so the link points at the real address.
+- The scan ID is in the URL, as the task asks. The request body holds only the optional password.
+
+**Known limits**
+- The password goes in the URL (`?password=...`). URLs can end up in logs.
+- There is no limit on wrong password guesses, so someone could keep guessing.
+- A link cannot be cancelled before it expires.
+
+**What I tested by hand**
+
+| Test | Result |
+|---|---|
+| Another user tries to share my scan | 404 |
+| Opening a protected link with the wrong password | 401 |
+| Opening a link that has expired | 403 |
+
+## Security work
+
+| What | Where |
+|---|---|
+| Scan results (raw JSON) | `reports/` — code (Semgrep), dependencies (Trivy), container image (Trivy), Helm chart (Trivy) and secrets (gitleaks) |
+| Scans after the fixes | `reports/after/` |
+| Findings, ranked | `docs/findings.md` |
+| What I fixed and what is still open | `docs/remediation-plan.md` |
+| Summary for a CISO | `docs/executive-summary.md` |
+
+Fixes made in the code: SQL injection in search, users reading each other's scans, unsigned login tokens, hard-coded secrets, and passwords written to the logs. I also upgraded the vulnerable Python libraries.
+
+## Deploying to Kubernetes
+
+The Helm chart is in `helm/vulntracker/`. It contains:
+
+- **Secrets from a secrets manager.** An `ExternalSecret` fetches `SECRET_KEY` from Google Secret Manager and creates a Kubernetes Secret. No secret value is written in the chart.
+- **Limited network access.** A `NetworkPolicy` lets only the ingress controller reach the pods, and only on port 8000. The Service is `ClusterIP`, so it is not exposed outside the cluster.
+- **Resource limits** for CPU and memory.
+- **Security contexts.** The pod runs as a non-root user, cannot gain extra privileges, drops all Linux capabilities and has a read-only filesystem.
+- **Health probes** that call `/health`.
+
+Before you deploy:
+1. Install [External Secrets Operator](https://external-secrets.io) in the cluster.
+2. Create the secret in Google Secret Manager:
+   ```bash
+   python3 -c "import secrets; print(secrets.token_urlsafe(32), end='')" | \
+     gcloud secrets create vulntracker-secret-key --replication-policy=automatic --data-file=-
+   ```
+3. Give the service account in `values.yaml` (`external-secrets-sa`) access to read that secret.
+4. Replace the placeholders in `helm/vulntracker/values.yaml`: the project ID, cluster name and location, and the image path.
+
+Then check and install:
+
+```bash
+helm lint helm/vulntracker
+helm template vulntracker helm/vulntracker
+helm install vulntracker helm/vulntracker --namespace vulntracker --create-namespace
+```
+
+## Folders
+
+```
+app/        Python API
+notify/     Node.js notification service
+tests/      Python tests
+helm/       Helm chart
+reports/    Scan results (JSON)
+docs/       Findings, remediation plan, executive summary
+Dockerfile  Image for the Python API
+```
+
 # Security Automation Engineer — Take-Home Assignment
 
 Welcome. This assignment is designed to reflect the real work of a Lead Security Automation Engineer: extending an existing service, identifying and assessing security risks, remediating them with code, and deploying it securely. There are no trick questions — we are evaluating your depth of knowledge, your judgment under constraints, and your ability to communicate risk.
