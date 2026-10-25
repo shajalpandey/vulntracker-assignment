@@ -67,5 +67,5 @@ I read the code by hand and ran four scans: Semgrep (code), Trivy (dependencies 
 
 ## What the scanners missed
 - Semgrep and Trivy (file and image scans) did not find the hard-coded secrets in finding 4. I only found them by reading the code.
-- Semgrep may consider them as legitimate keys. Howver this can be resolved by creating acustom rule that includes pattern addition for these keys detection
+- Semgrep may consider them as legitimate keys. Howver this can be resolved by creating a custom rule that includes pattern addition for these keys detection
 - I've used Gitleaks scanning to detect sensitive keys and report is present under reports/ folder.

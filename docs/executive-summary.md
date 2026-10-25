@@ -14,7 +14,7 @@ In short: before, the app was open to serious attacks, and now the main ones are
 
 1. **The old login key is still in our history.** The key that used to be in the code is still visible in the code's history. The app no longer uses it, but it must be treated as stolen and never used again. Removing it from the history needs the team to agree, because it changes the history for everyone.
 2. **The server's base software has known weaknesses with no fix yet.** The base system the app runs on has serious known weaknesses, and its maker has not released fixes. I cannot fix them from here. The app runs with minimal permissions so that these are hard to use, but the risk stays until fixes are released.
-3. **Shared links can be guessed at without limit.** A shared link with a password can be tried again and again, because nothing stops repeated wrong guesses. The links are hard to guess and expire after 24 hours, which keeps the risk low. I did not add a limit yet, and it should be added before this goes live.
+3. **Shared links can be guessed at without limit.** A shared link with a password can be tried again and again, because nothing stops repeated wrong guesses.
 
 ## What I recommend next
 

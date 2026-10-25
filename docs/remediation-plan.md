@@ -6,7 +6,7 @@ Numbers match `findings.md`.
 
 | # | Problem | What I did | How I checked |
 |---|---|---|---|
-| 1 | SQL injection in search | Search no longer puts user text into the SQL. | Checked the new query: user text is passed as a parameter, not inside the SQL. Tests pass. |
+| 1 | SQL injection in search | Search no longer puts user text into the SQL. | Checked the new query: user text is passed as a parameter, not inside the SQL as formatted string. Tests pass. |
 | 2 | Users could read each other's scans | The scan lookup now also checks who owns it | A second user asked for scan 1 and got 404 |
 | 3 | Unsigned tokens accepted | Only the HS256 signing method is allowed now | Tests pass |
 | 4 | Secrets in the code | The key now comes from `.env`. The app won't start without it. | App starts with a key and stops without one |
@@ -24,3 +24,4 @@ Numbers match `findings.md`.
 
 - Run the scans in CI so new problems fail the build.
 - Add a secret scanner, because none of my scanners found the hard-coded secrets.(added gitleaks scan created the report)
+- The shared link can be guessed with wrong passwords. Some limit needs to be there.
