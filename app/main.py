@@ -290,8 +290,9 @@ def get_scan_data(token: str,
     if shared_link.expires_at < datetime.utcnow():
         raise HTTPException(status_code=403, detail="Share link has expired")
 
-    if not password or not verify_password(password, shared_link.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid password for share link")
+    if shared_link.hashed_password:
+        if not password or not verify_password(password, shared_link.hashed_password):
+            raise HTTPException(status_code=401, detail="Invalid password for share link")
 
     scan = db.query(models.ScanResult).filter(models.ScanResult.id == shared_link.scan_id).first()
     return scan

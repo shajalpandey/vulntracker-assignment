@@ -24,4 +24,3 @@ Numbers match `findings.md`.
 
 - Run the scans in CI so new problems fail the build.
 - Add a secret scanner, because none of my scanners found the hard-coded secrets.(added gitleaks scan created the report)
-- Add a test that one user can't see another user's scans.
