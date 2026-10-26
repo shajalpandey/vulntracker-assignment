@@ -38,3 +38,9 @@ runAsGroup: 10001
 
 networkPolicy:
   ingressNamespace: ingress-nginx
+
+ingress:
+  host: vulntracker.example.com
+  tlsSecret: vulntracker-tls
+
+  
