@@ -1,0 +1,12 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "hardcoded-secret-assignment"
+description = "Secret, password or key assigned a plain string in code"
+regex = '''(?i)(secret_key|password|api_key|service_key)\s*[:=]\s*["'][^"'\s]{8,}["']'''
+keywords = ["secret_key", "password", "api_key", "service_key"]
+
+[allowlist]
+paths = ['''\.env\.example$''', '''^tests/''']
+regexes = ['''change-me''']
