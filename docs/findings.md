@@ -89,3 +89,4 @@ I read the code by hand and ran four scans: Semgrep (code), Trivy (dependencies 
 
 ## Notes on the scan results
 - The secrets scan also read my own report files in `reports/`. It flagged the earlier gitleaks report, which repeats the keys it had found, and a `GPG_KEY` value in the container scan reports. These are not new problems and can be ignored. The GPG value is the public ID of the key that signs Python releases, not a secret.
+- The gitleaks report shows the old key values on purpose, so the matches can be checked. All of them are already in the git history and must be treated as leaked.
